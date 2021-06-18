@@ -1,23 +1,25 @@
-using Random, Distributions, Images, Sixel
+using Random, Distributions, Images, Sixel, ImageInTerminal
 
-function abbild(x, y, z)
-    p_vec = collect((x,y,z))
-    pointOnPlane = p_vec * 250/p_vec[3]
-    if -250 < pointOnPlane[1] < 250 && -250 < pointOnPlane[2] < 250
-        (floor(Int, pointOnPlane[1]), floor(Int, pointOnPlane[2]))
+function abbild(p)
+    if p[3] < 250
+        return nothing
+    end
+
+    pointOnPlane = collect(p) * 250/p[3]
+    if -250 < pointOnPlane[1]* 250/p[3] < 250 && -250 < pointOnPlane[2]* 250/p[3] < 250
+        return (floor(Int, pointOnPlane[1]), floor(Int, pointOnPlane[2]))
     else
-        nothing
+        return nothing
     end
 end
-
 
 function is_visible(p, m, r)
     α, β, γ = p
     x, y, z = m
 
     # p does not lie in the image
-    if isnothing(abbild(α, β, γ))
-        false
+    if isnothing(abbild(p))
+        return false
     end
 
     a = α^2+β^2+γ^2
@@ -29,17 +31,29 @@ function is_visible(p, m, r)
         sqrt(b^2-4*a*c)
     catch exception
         if isa(exception, DomainError)
-            false
+            return false
         end
     end
 
-    # If root is zero, it lies on the visibel part of the sphere (only one 
+    t = 250/p[3]
+
+    s_1 = (-b+sqrt(b^2-4*a*c))/2*a
+    s_2 = (-b-sqrt(b^2-4*a*c))/2*a
+
+    intersect1 = 1 > s_1 > t
+    intersect2 = 1 > s_2 > t
+
+    # If root is zero, it lies on the visibel part of the sphere (only one
     # intersect) if not, it has two intersects and is therefore on the backside
-    if sqrt(b^2-4*a*c) == 0
-        true
-    else
-        false
+    if intersect1 && intersect2
+        return false
+    elseif intersect1
+        return true
+    elseif intersect2
+        return true
     end
+
+    false
 end
 
 function samples(x, y, b, h, m, r, dichte)
@@ -52,7 +66,7 @@ function samples(x, y, b, h, m, r, dichte)
         sample_array[i] = sphere_projection(θ, ϕ, m, r)
     end
 
-    sample_array
+    return sample_array
 end
 
 function sphere_projection(θ, ϕ, m, r)
@@ -76,27 +90,25 @@ function snapshot_sphere(b, h, daten, m, r, dichte)
                 # Get sample
                 x_sphere, y_sphere, z_sphere = sample_array[p]
                 # Project sample onto the plane
-                x_plane, y_plane = abbild(x_sphere, y_sphere, z_sphere)
+                x_plane, y_plane = abbild(sample_array[p])
                 # Write pixel value at the projected place
                 bildebene[x_plane+250, y_plane+250] = daten[x*y]
             end
         end
     end
 
-    bildebene
+    return bildebene
 end
 
 
 ##################-Test-Section-##########################
-# using ImageInTerminal
-# include("projection.jl")
-# b = 320
-# h = 320
-# m = (0, 0, 100)
-# r = 50
-# dichte = 1
-# img = load("test.png")
-# img_rgba = map((x) -> convert(RGBA, x), img)
-# daten = map((color) -> (color.r, color.g, color.b, color.alpha), img_rgba)
-# projected_image_tuple = snapshot_sphere(b, h, daten, m, r, dichte)
-# projected_image = map((x) -> RGBA{N0f8}(x[1],x[2],x[3],x[4]), projected_image_tuple)
+b = 320
+h = 320
+m = (0, 0, 500)
+r = 50
+dichte = 1
+img = load("test.png");
+img_rgba = map((x) -> convert(RGBA, x), img);
+daten = map((color) -> (color.r, color.g, color.b, color.alpha), img_rgba);
+projected_image_tuple = snapshot_sphere(b, h, daten, m, r, dichte);
+projected_image = map((x) -> RGBA{N0f8}(x[1],x[2],x[3],x[4]), projected_image_tuple)
