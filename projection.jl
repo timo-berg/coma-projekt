@@ -1,4 +1,4 @@
-using Random, Distributions, Images, Sixel, Debugger, ImageView
+using Random, Distributions, Images, ImageView
 
 function abbild(p)
     if p[3] < 250
@@ -109,12 +109,12 @@ end
 
 
 ##################-Test-Section-##########################
-b = 1080
-h = 1920
-r = 600
+b = 1000
+h = 1000
+r = 260
 m = (0, 0, 260+r)
 dichte = 10
-img = load("test_gross.jpg");
+img = load("stripes.png");
 img_rgba = map((x) -> convert(RGBA, x), img);
 daten = map((color) -> (color.r, color.g, color.b, color.alpha), img_rgba);
 projected_image_tuple = snapshot_sphere(b, h, daten, m, r, dichte);
