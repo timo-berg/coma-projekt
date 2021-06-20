@@ -1,4 +1,5 @@
-using Random, Distributions, Images, ImageView
+using Base: Float64
+using Random, Distributions, Images, ImageView, Plots
 
 function abbild(p)
     if p[3] < 250
@@ -40,8 +41,8 @@ function is_visible(p, m, r)
     s_1 = (-b+sqrt(b^2-4*a*c))/(2*a)
     s_2 = (-b-sqrt(b^2-4*a*c))/(2*a)
 
-    intersect1 = 1 >= s_1 > t
-    intersect2 = 1 >= s_2 > t
+    intersect1 = 1 >= round(s_1, digits=3) > t
+    intersect2 = 1 >= round(s_2, digits=3) > t
 
     # If root is zero, it lies on the visibel part of the sphere (only one
     # intersect) if not, it has two intersects and is therefore on the backside
@@ -57,12 +58,13 @@ function is_visible(p, m, r)
 end
 
 function samples(x, y, b, h, m, r, dichte)
-    δ = rand(Uniform(0,1), dichte, 2)
+    δ = rand(Uniform(-1,1), dichte, 2)
+    # δ = zeros(dichte, 2)
     sample_array = Array{Tuple{Float64,Float64,Float64},1}(undef,dichte)
 
     for i in 1:dichte
-        θ = (x+δ[i,1])*π/h
-        ϕ = (y+δ[i,2])*2*π/b
+        θ = (x+δ[i,1])*(π/h)
+        ϕ = (y+δ[i,2])*2*(π/b)
         sample_array[i] = sphere_projection(θ, ϕ, m, r)
     end
 
@@ -71,12 +73,7 @@ end
 
 function sphere_projection(θ, ϕ, m, r)
     x, y, z = m
-    x+r*sin(θ)*cos(ϕ), y+r*sin(θ)*sin(ϕ), z+r*cos(θ)
-    # x+r*sin(θ)*cos(ϕ), y+r*cos(θ), z+r*sin(θ)*sin(ϕ)
-    # x+r*sin(θ)*sin(ϕ), y+r*sin(θ)*cos(ϕ), z+r*cos(θ)
-    # x+r*sin(θ)*sin(ϕ), y+r*cos(θ), z+r*sin(θ)*cos(ϕ)
-    # x+r*cos(θ), y+r*sin(θ)*cos(ϕ), z+r*sin(θ)*sin(ϕ)
-
+    x-r*cos(θ), y-r*sin(θ)*sin(ϕ), z+r*sin(θ)*cos(ϕ)
 end
 
 function snapshot_sphere(b, h, daten, m, r, dichte)
@@ -85,22 +82,23 @@ function snapshot_sphere(b, h, daten, m, r, dichte)
     bild_counter = zeros(Int, 500, 500)
     # Iterate over pixel
     for l in 1:(b*h)
-        x = l % b
-        y = floor(Int, l // b)
+        y = l % b
+        x = floor(Int, l // b)
 
         # Generate samples and select only visible ones
         sample_array = samples(x, y, b, h, m, r, dichte)
         selection_array = map((x) -> is_visible(x, m, r), sample_array)
         sample_array = sample_array[selection_array]
+
         # Write visible samples in bildebene. Average multiple entries
         for p in 1:size(sample_array)[1]
             # Project sample onto the plane
             x_plane, y_plane = abbild(sample_array[p])
             # Write pixel value at the projected place
-            bild_counter[x_plane+250, y_plane+250] += 1
-            old_value = collect(bild_ebene[x_plane+250, y_plane+250])
-            new_value = old_value + (collect(daten[l])-old_value)/bild_counter[x_plane+250, y_plane+250]
-            bild_ebene[x_plane+250, y_plane+250] = tuple(new_value...)
+            bild_counter[x_plane+249, y_plane+249] += 1
+            old_value = collect(bild_ebene[x_plane+249, y_plane+249])
+            new_value = old_value + (collect(daten[l])-old_value)/bild_counter[x_plane+249, y_plane+249]
+            bild_ebene[x_plane+249, y_plane+249] = tuple(new_value...)
         end
     end
 
@@ -108,15 +106,59 @@ function snapshot_sphere(b, h, daten, m, r, dichte)
 end
 
 
+function sample_z(b,h,m,r,dichte)
+    z_values = zeros(Float64, h, b)
+    for x in 1:h
+        for y in 1:b
+            z_values[x,y] = samples(x,y,b,h,m,r,1)[1][3]
+        end
+    end
+
+    z_values
+end
+
+function sample_visible(b,h,m,r,dichte)
+    visible = zeros(Bool, h, b)
+    for x in 1:h
+        for y in 1:b
+            visible[x,y] = is_visible(tuple(samples(x,y,b,h,m,r,1)[1]...),m,r)
+        end
+    end
+
+    visible
+end
 ##################-Test-Section-##########################
-b = 1000
-h = 1000
-r = 260
-m = (0, 0, 260+r)
+
+coordinates = [[-200, 200], [-200, -200], [200, -200], [200, 200], [0, -200], [0, 200], [200, 0], [-200, 0], [0, 0]]
+
+sum_image = Array{RGBA{N0f8}}(undef, 500, 500)
+
+img = transpose(load("test.png"));
+b, h = size(img)
+r = floor(b/(2*π))
+# m = (-200, -200, 260+r)
 dichte = 10
-img = load("stripes.png");
-img_rgba = map((x) -> convert(RGBA, x), img);
-daten = map((color) -> (color.r, color.g, color.b, color.alpha), img_rgba);
-projected_image_tuple = snapshot_sphere(b, h, daten, m, r, dichte);
-projected_image = map((x) -> RGBA{N0f8}(x[1],x[2],x[3],x[4]), projected_image_tuple)
-ImageView.imshow(projected_image)
+
+for coord in 1:size(coordinates)[1]
+    m = (coordinates[coord][1], coordinates[coord][2], 260+r)
+
+    img_rgba = map((x) -> convert(RGBA, x), img);
+    daten = map((color) -> (color.r, color.g, color.b, color.alpha), img_rgba);
+    projected_image_tuple = snapshot_sphere(b, h, daten, m, r, dichte);
+    projected_image = map((x) -> RGBA{N0f8}(x[1],x[2],x[3],x[4]), projected_image_tuple)
+
+    global sum_image = sum_image + projected_image
+end
+
+# ImageView.imshow(projected_image)
+save("proj_test.png", sum_image)
+
+# z_values = sample_z(b,h,m,r,dichte)
+# heatmap(z_values)
+
+# visible = sample_visible(b,h,m,r,dichte)
+# heatmap(visible)
+
+
+
+# is_visible(samples(Int(b/2),Int(h/2),b,h,m,r,dichte)[1], m, r)
