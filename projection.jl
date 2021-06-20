@@ -129,11 +129,11 @@ function sample_visible(b,h,m,r,dichte)
 end
 ##################-Test-Section-##########################
 
-coordinates = [[-200, 200], [-200, -200], [200, -200], [200, 200], [0, -200], [0, 200], [200, 0], [-200, 0], [0, 0]]
+coordinates = [[-200, 200], [-200, -200], [200, -200], [200, 200], [0, -200], [0, 200], [200, 0], [-200, 0], [0, 0]]*1/2
 
 sum_image = Array{RGBA{N0f8}}(undef, 500, 500)
 
-img = transpose(load("test.png"));
+img = transpose(load("textures/checker.png"));
 b, h = size(img)
 r = floor(b/(2*π))
 # m = (-200, -200, 260+r)
@@ -151,7 +151,7 @@ for coord in 1:size(coordinates)[1]
 end
 
 # ImageView.imshow(projected_image)
-save("proj_test.png", sum_image)
+save("output/proj_checker.png", sum_image)
 
 # z_values = sample_z(b,h,m,r,dichte)
 # heatmap(z_values)
