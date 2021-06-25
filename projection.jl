@@ -127,30 +127,23 @@ function sample_visible(b,h,m,r,dichte)
 
     visible
 end
+
+
 ##################-Test-Section-##########################
 
-# coordinates = [[-200, 200], [-200, -200], [200, -200], [200, 200], [0, -200], [0, 200], [200, 0], [-200, 0], [0, 0]]*1/2
-
-# sum_image = Array{RGBA{N0f8}}(undef, 500, 500)
-
-# img = transpose(load("textures/checker.png"));
+# img = transpose(load("textures/ice.jpg"));
 # b, h = size(img)
-# r = floor(b/(2*π))
-# # m = (-200, -200, 260+r)
+# r = floor(b/1.5)
+# m = (0, 0, 260+2*r)
 # dichte = 10
 
-# for coord in 1:size(coordinates)[1]
-#     m = (coordinates[coord][1], coordinates[coord][2], 260+r)
+# img_rgba = map((x) -> convert(RGBA, x), img);
+# daten = map((color) -> (color.r, color.g, color.b, color.alpha), img_rgba);
+# projected_image_tuple = snapshot_sphere(b, h, daten, m, r, dichte);
+# projected_image = map((x) -> RGBA{N0f8}(x[1],x[2],x[3],x[4]), projected_image_tuple)
 
-#     img_rgba = map((x) -> convert(RGBA, x), img);
-#     daten = map((color) -> (color.r, color.g, color.b, color.alpha), img_rgba);
-#     projected_image_tuple = snapshot_sphere(b, h, daten, m, r, dichte);
-#     projected_image = map((x) -> RGBA{N0f8}(x[1],x[2],x[3],x[4]), projected_image_tuple)
+# ImageView.imshow(projected_image)
 
-#     global sum_image = sum_image + projected_image
-# end
-
-# # ImageView.imshow(projected_image)
 # save("output/proj_checker.png", sum_image)
 
 # z_values = sample_z(b,h,m,r,dichte)
